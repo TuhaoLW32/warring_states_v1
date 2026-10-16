@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>烽火列国 · 沙盘</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14161a; --bg2:#1b1e24; --surface:#22262e;
+    --ink:#e9e2d2; --muted:#8d8676; --gold:#d4a942; --seal:#b23a2e; --line:#3a3f49;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:radial-gradient(ellipse at 15% 0%,#20242c 0%,transparent 55%),
+      radial-gradient(ellipse at 90% 100%,#241f1a 0%,transparent 50%),var(--bg);
+    color:var(--ink); font-family:"Noto Serif SC","Songti SC",serif;
+    min-height:100vh; padding:16px 20px 30px;
+  }
+  body::before{
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  }
+  h1,h2,h3{font-family:"ZCOOL XiaoWei","Noto Serif SC",serif; font-weight:400; letter-spacing:.06em;}
+  header{display:flex; align-items:flex-end; gap:24px; border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:12px;}
+  .title{font-size:30px; line-height:1;}
+  .title .seal{display:inline-block; background:var(--seal); color:#f5e9d8; font-size:12px;
+    padding:3px 8px; margin-left:10px; vertical-align:middle; letter-spacing:.3em; transform:translateY(-3px);}
+  .meta{display:flex; gap:22px; font-size:13px; color:var(--muted);}
+  .meta b{color:var(--gold); font-size:18px;}
+  #weatherName{color:var(--ink);}
+
+  #legend{display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; font-size:11px; color:var(--muted); align-items:center;}
+  .lg{display:flex; align-items:center; gap:4px;}
+  .sw{width:13px; height:13px; border:1px solid rgba(255,255,255,.18);}
+
+  main{display:grid; grid-template-columns:1fr 360px; gap:14px; align-items:start;}
+  #mapWrap{position:relative; background:#0e1116; border:1px solid var(--line); overflow:hidden;}
+  #map{display:block; width:100%; cursor:pointer;}
+  #mapTip{position:absolute; left:10px; top:8px; font-size:11px; color:var(--muted);
+    background:rgba(14,17,22,.75); padding:5px 9px; pointer-events:none; letter-spacing:.06em;}
+  #tooltip{position:absolute; pointer-events:none; background:rgba(18,21,27,.94); border:1px solid var(--gold);
+    padding:8px 11px; font-size:12px; line-height:1.8; display:none; z-index:20; max-width:230px;}
+
+  aside{display:flex; flex-direction:column; gap:11px;}
+  .panel{background:var(--surface); border:1px solid var(--line); padding:12px 14px;}
+  .panel h3{font-size:14px; color:var(--gold); letter-spacing:.22em; margin-bottom:9px;}
+  .panel h3::before{content:'— '; color:var(--seal);}
+  .res{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; font-size:11px; color:var(--muted);}
+  .res .v{display:block; font-size:16px; color:var(--ink); font-weight:700; margin-top:2px;}
+  .orders{display:grid; grid-template-columns:repeat(2,1fr); gap:6px;}
+  .obtn{background:#2a2f38; color:var(--ink); border:1px solid var(--line); padding:7px 5px;
+    font-family:inherit; font-size:12px; cursor:pointer; transition:all .18s; letter-spacing:.04em; text-align:center;}
+  .obtn:hover{border-color:var(--gold);}
+  .obtn.used{opacity:.32; cursor:not-allowed;}
+  .obtn.targeting{background:var(--seal); border-color:var(--seal);}
+  .obtn small{display:block; color:var(--muted); font-size:9px; margin-top:2px;}
+  .slots{margin:9px 0; display:flex; flex-direction:column; gap:4px;}
+  .slot{display:flex; justify-content:space-between; align-items:center; background:#1c2027;
+    border-left:3px solid var(--gold); padding:5px 9px; font-size:12px;}
+  .slot.empty{border-left-color:var(--line); color:var(--muted); font-style:italic;}
+  .slot button{background:none; border:none; color:var(--seal); cursor:pointer; font-size:12px;}
+  .row{display:flex; gap:7px;}
+  .big{flex:1; padding:11px; font-family:inherit; font-size:15px; letter-spacing:.22em;
+    background:var(--gold); color:#1a1508; border:none; cursor:pointer; transition:letter-spacing .3s;}
+  .big:hover{letter-spacing:.38em;}
+  .big:disabled{background:#4a4437; color:#8d8676; cursor:not-allowed; letter-spacing:.22em;}
+  .ghost{background:none; border:1px solid var(--line); color:var(--ink); padding:10px 12px; cursor:pointer;
+    font-family:inherit; font-size:12px;}
+  .ghost:hover{border-color:var(--gold);}
+  .ncard{display:grid; grid-template-columns:9px 1fr auto; gap:9px; align-items:center;
+    padding:7px 8px; margin-bottom:5px; background:#1c2027; cursor:pointer; border:1px solid transparent; transition:border .18s;}
+  .ncard:hover{border-color:var(--gold);}
+  .ncard.dead{opacity:.38;}
+  .ncard .bar{width:9px; height:32px;}
+  .ncard .nm{font-size:13px;}
+  .ncard .nm small{color:var(--muted); font-size:9px; display:block; margin-top:2px;}
+  .ncard .nums{font-size:10px; color:var(--muted); text-align:right; line-height:1.7;}
+  .ncard .nums b{color:var(--ink); font-size:11px;}
+  .flag{color:var(--seal); font-size:9px;}
+
+  .filter{display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;}
+  .fchip{padding:3px 8px; font-size:10px; border:1px solid var(--line); background:#232830;
+    color:var(--muted); cursor:pointer;}
+  .fchip.sel{background:var(--gold); color:#1a1508; border-color:var(--gold);}
+  #log{height:210px; overflow-y:auto; font-size:11.5px; line-height:1.8;}
+  #log p{animation:slideIn .3s ease; padding:1px 0;}
+  #log p .tag{color:var(--gold);}
+  #log p .star{color:var(--seal);}
+  #log p.sys{color:var(--muted); font-style:italic;}
+  @keyframes slideIn{from{opacity:0; transform:translateX(-12px);} to{opacity:1; transform:none;}}
+
+  .mask{position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+    background:rgba(10,12,15,.82); backdrop-filter:blur(3px);}
+  .mask.hide{display:none;}
+  .sheet{width:min(680px,93vw); background:var(--bg2); border:1px solid var(--gold);
+    padding:30px 34px; max-height:88vh; overflow-y:auto;}
+  .sheet h2{font-size:24px; color:var(--gold); margin-bottom:6px;}
+  .sheet .sub{color:var(--muted); font-size:12.5px; margin-bottom:16px; line-height:1.9;}
+  .sheet h4{font-size:12px; letter-spacing:.28em; color:var(--muted); margin:16px 0 8px;}
+  .choices{display:flex; flex-wrap:wrap; gap:7px;}
+  .chip{padding:8px 15px; border:1px solid var(--line); background:#232830; color:var(--ink);
+    cursor:pointer; font-family:inherit; font-size:13px; transition:all .18s;}
+  .chip:hover{border-color:var(--gold);}
+  .chip.sel{background:var(--gold); color:#1a1508; border-color:var(--gold);}
+  .chip.nation{display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:128px;}
+  .chip.nation small{color:var(--muted); font-size:9px;}
+  .chip.nation.sel small{color:#5a4a12;}
+  table.stats{width:100%; border-collapse:collapse; margin:12px 0; font-size:12px;}
+  table.stats th, table.stats td{border:1px solid var(--line); padding:7px 9px; text-align:center;}
+  table.stats th{color:var(--gold); font-weight:500; letter-spacing:.12em;}
+  .kv{color:var(--muted); font-size:12px; line-height:2.1;}
+  .kv b{color:var(--gold);}
+  .speeds{display:flex; gap:6px; margin-top:8px;}
+  .speeds .chip{flex:1; text-align:center; padding:7px 4px; font-size:11px;}
+  .histTurn{border-left:3px solid var(--gold); padding:6px 10px; margin:8px 0; background:#1c2027; font-size:12px; line-height:1.9;}
+  .histTurn b{color:var(--gold);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 class="title">烽火列国<span class="seal">沙盘</span></h1>
+  <div class="meta">
+    <div>回合 <b id="turnNum">1</b></div>
+    <div>天气 <b id="weatherName">晴朗</b></div>
+    <div id="weatherDesc" style="max-width:250px; line-height:1.6;"></div>
+  </div>
+</header>
+
+<div id="legend"></div>
+
+<main>
+  <div id="mapWrap">
+    <canvas id="map"></canvas>
+    <div id="mapTip">悬停查看地块详情 · 点击地图选定目标城池</div>
+    <div id="tooltip"></div>
+  </div>
+
+  <aside>
+    <div class="panel" id="playerPanel">
+      <h3 id="ppTitle">你的国家</h3>
+      <div class="res" id="ppRes"></div>
+      <div class="kv" id="ppCities" style="margin:8px 0 2px; font-size:11px;"></div>
+      <div class="slots" id="ppSlots"></div>
+      <div class="orders" id="ppActions"></div>
+      <div class="row" style="margin-top:9px;">
+        <button class="ghost" id="exchangeBtn">互市</button>
+        <button class="ghost" id="autoFillBtn">自动补令</button>
+        <button class="ghost" id="historyBtn">国史</button>
+      </div>
+      <button class="big" id="submitBtn" style="margin-top:8px;">开战！</button>
+      <div id="ppHint" style="margin-top:7px; font-size:10px; color:var(--seal); min-height:14px;"></div>
+    </div>
+
+    <div class="panel" id="watchPanel" style="display:none;">
+      <h3>观战台</h3>
+      <div class="kv" id="watchInfo">群雄逐鹿中……</div>
+      <div class="row" style="margin-top:9px;">
+        <button class="ghost" id="pauseBtn">暂停</button>
+        <button class="ghost" id="stepBtn">单步</button>
+        <button class="ghost" id="historyBtn2">国史</button>
+      </div>
+      <h4 style="color:var(--muted); font-size:10px; letter-spacing:.28em; margin:12px 0 4px;">演算速度</h4>
+      <div class="speeds" id="speedBtns">
+        <button class="chip" data-sp="1">慢</button>
+        <button class="chip sel" data-sp="2">中</button>
+        <button class="chip" data-sp="3">快</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>天下大势</h3>
+      <div id="nationCards"></div>
+    </div>
+
+    <div class="panel">
+      <h3>战报 <button class="ghost" id="historyBtn3" style="float:right; padding:2px 9px; font-size:10px;">国史</button></h3>
+      <div class="filter" id="logFilter"></div>
+      <div id="log"></div>
+    </div>
+  </aside>
+</main>
+
+<div class="mask" id="startMask">
+  <div class="sheet">
+    <h2>《烽火列国》</h2>
+    <div class="sub">七雄并立，逐鹿天下。城-郡制沙盘：一座城统辖周边郡地，城陷则郡失。<br>
+    实线为国界、虚线为郡界、蓝线为江河；每回合三道军令，攻伐须与敌境接壤。</div>
+    <h4>选择模式</h4>
+    <div class="choices" id="modeChips">
+      <button class="chip sel" data-mode="play">亲自征战</button>
+      <button class="chip" data-mode="watch">观战看海</button>
+    </div>
+    <div id="playOpts">
+      <h4>难度</h4>
+      <div class="choices" id="diffChips">
+        <button class="chip" data-diff="1">简单</button>
+        <button class="chip sel" data-diff="2">普通</button>
+        <button class="chip" data-diff="3">困难</button>
+      </div>
+      <h4>选择你的国家</h4>
+      <div class="choices" id="nationChips"></div>
+      <h4>人机对手数量</h4>
+      <div class="choices" id="countChips">
+        <button class="chip" data-c="1">1 国</button>
+        <button class="chip" data-c="2">2 国</button>
+        <button class="chip" data-c="3">3 国</button>
+        <button class="chip" data-c="4">4 国</button>
+        <button class="chip" data-c="5">5 国</button>
+        <button class="chip sel" data-c="6">6 国 · 战国七雄</button>
+      </div>
+    </div>
+    <div id="watchOpts" style="display:none;">
+      <h4>参战国家数</h4>
+      <div class="choices" id="wCountChips">
+        <button class="chip" data-c="2">2</button>
+        <button class="chip" data-c="3">3</button>
+        <button class="chip" data-c="4">4</button>
+        <button class="chip" data-c="5">5</button>
+        <button class="chip" data-c="6">6</button>
+        <button class="chip sel" data-c="7">7 · 战国七雄</button>
+      </div>
+    </div>
+    <button class="big" id="startBtn" style="margin-top:22px;">开 局</button>
+  </div>
+</div>
+
+<div class="mask hide" id="endMask">
+  <div class="sheet">
+    <h2 id="endTitle">天下归一</h2>
+    <div class="sub" id="endSub"></div>
+    <div id="endStats"></div>
+    <button class="big" id="againBtn" style="margin-top:8px;">再来一局</button>
+  </div>
+</div>
+
+<div class="mask hide" id="exMask">
+  <div class="sheet" style="width:min(420px,93vw);">
+    <h2>互市兑换</h2>
+    <div class="sub" id="exInfo"></div>
+    <h4>粮换金（2 粮 → 1 金）</h4>
+    <div class="row">
+      <button class="chip" data-ex="fg10">10 金</button>
+      <button class="chip" data-ex="fg50">50 金</button>
+      <button class="chip" data-ex="fgAll">全部</button>
+    </div>
+    <h4>金换粮（1 金 → 2 粮）</h4>
+    <div class="row">
+      <button class="chip" data-ex="gf10">10 金</button>
+      <button class="chip" data-ex="gf50">50 金</button>
+      <button class="chip" data-ex="gfAll">全部</button>
+    </div>
+    <button class="big" id="exDone" style="margin-top:20px;">完成</button>
+  </div>
+</div>
+
+<div class="mask hide" id="histMask">
+  <div class="sheet">
+    <h2>国史</h2>
+    <div class="sub" id="histSub">逐回合记录你的国家所经历的一切</div>
+    <div id="histBody"></div>
+    <button class="big" id="histDone" style="margin-top:14px;">关闭</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ================================================================
+   可调参数区
+   ================================================================ */
+const DIFFICULTIES = {
+  1:{name:'简单',aiMult:0.85,aiBonus:0}, 2:{name:'普通',aiMult:1.00,aiBonus:0}, 3:{name:'困难',aiMult:1.15,aiBonus:10},
+};
+const WEATHERS = [
+  {name:'晴朗',desc:'风和日丽，各业照常',food:1,gold:1,atk:1,def:1,fire:1},
+  {name:'大雨',desc:'雨水充沛利农桑，行军作战皆不便',food:1.25,gold:1,atk:0.85,def:0.95,fire:0.2},
+  {name:'大雪',desc:'天寒地冻，粮产大减，用兵艰难',food:0.75,gold:1,atk:0.8,def:0.9,fire:0.6},
+  {name:'干旱',desc:'赤地千里，颗粒难收，宜防火攻',food:0.65,gold:0.95,atk:1,def:1,fire:1.5},
+  {name:'大风',desc:'风助火势，火攻之利倍增',food:1,gold:1.1,atk:1.1,def:1,fire:2},
+  {name:'酷暑',desc:'溽热难当，士卒乏力',food:0.9,gold:1,atk:0.9,def:0.9,fire:1.2},
+];
+
+const TERRAIN_STATS = {
+  plain:   {food:0.05, gold:0.00, atk:0.00, def:0.00, name:'平原'},
+  hill:    {food:0.00, gold:0.02, atk:0.00, def:0.06, name:'丘陵'},
+  mountain:{food:-0.08,gold:0.00, atk:-0.05,def:0.15, name:'山地'},
+  waste:   {food:-0.10,gold:-0.05,atk:0.03, def:0.00, name:'荒原'},
+  water:   {food:0.10, gold:0.05, atk:0.00, def:0.05, name:'水域'},
+};
+
+const TRAITS = {
+  '秦':['军功爵制','进攻战力+10%；胜战额外掠金+15、士气+5'],
+  '楚':['地大物博','粮草产出+25%'],
+  '齐':['渔盐之利','金钱产出+30%'],
+  '燕':['易水壮士','防守战力+25%；士气永不低于20'],
+  '赵':['胡服骑射','进攻战力+15%；攻方战损-10%'],
+  '魏':['武卒重甲','防守战力+15%；各城初始城防更高'],
+  '韩':['劲弩强弓','战斗多杀伤敌军15%；火攻+50%；亡国后可流亡复国'],
+};
+const NATION_KEYS = ['秦','楚','齐','燕','赵','魏','韩'];
+const NATION_COLORS = {'秦':'#5b6672','楚':'#b03a2e','齐':'#2e86c1','燕':'#b7950b','赵':'#1e8449','魏':'#884ea0','韩':'#d68910'};
+
+/* 城池：秦5 / 楚6 / 齐5 / 燕4 / 赵5 / 魏5 / 韩3 = 33 座 */
+const CITY_DATA = [
+  {n:'陇西',k:'秦',c:0,r:2}, {n:'雍',k:'秦',c:1,r:4}, {n:'咸阳',k:'秦',c:3,r:5,cap:true},
+  {n:'南郑',k:'秦',c:2,r:7}, {n:'蜀',k:'秦',c:1,r:9},
+  {n:'宛',k:'楚',c:4,r:8}, {n:'郢',k:'楚',c:5,r:9,cap:true}, {n:'丹阳',k:'楚',c:7,r:9},
+  {n:'陈',k:'楚',c:10,r:8}, {n:'寿春',k:'楚',c:12,r:9}, {n:'吴',k:'楚',c:14,r:10},
+  {n:'济南',k:'齐',c:11,r:3}, {n:'临淄',k:'齐',c:13,r:4,cap:true}, {n:'东莱',k:'齐',c:15,r:4},
+  {n:'莒',k:'齐',c:13,r:6}, {n:'即墨',k:'齐',c:15,r:6},
+  {n:'渔阳',k:'燕',c:10,r:0}, {n:'蓟',k:'燕',c:11,r:1,cap:true},
+  {n:'令支',k:'燕',c:13,r:1}, {n:'襄平',k:'燕',c:15,r:1},
+  {n:'晋阳',k:'赵',c:5,r:2}, {n:'代',k:'赵',c:8,r:0}, {n:'灵寿',k:'赵',c:9,r:2},
+  {n:'邯郸',k:'赵',c:8,r:3,cap:true}, {n:'邢',k:'赵',c:9,r:4},
+  {n:'安邑',k:'魏',c:5,r:4}, {n:'郑',k:'魏',c:8,r:5}, {n:'邺',k:'魏',c:10,r:5},
+  {n:'大梁',k:'魏',c:8,r:7,cap:true}, {n:'濮阳',k:'魏',c:10,r:7},
+  {n:'宜阳',k:'韩',c:5,r:6}, {n:'新郑',k:'韩',c:7,r:6,cap:true}, {n:'阳翟',k:'韩',c:6,r:7},
+];
+
+const MAP_COLS = 17, MAP_ROWS = 12;
+const ROW_RANGE = {
+  0:[3,15], 1:[2,15], 2:[0,16], 3:[0,16], 4:[0,16], 5:[0,16],
+  6:[0,16], 7:[1,16], 8:[1,16], 9:[1,16], 10:[2,16], 11:[4,15],
+};
+const SEA_TILES = new Set([
+  '13,2','14,2','15,2','16,2',
+  '13,3','14,3','15,3','16,3',
+  '16,4','16,5','16,6','16,7','16,8','16,9','16,10',
+  '15,8','15,9','15,10'
+]);
+const LAKE_TILES = new Set(['5,11','6,11','7,11']);
+const MOUNTAIN_TILES = new Set(['0,3','1,3','3,7','4,7','6,2','6,3','13,7','14,7','2,10']);
+
+/* 河流：沿地块棱线的蓝色粗线。side = 直线段贴行界的哪一侧（+1 南 / -1 北） */
+const RIVER_PATHS = [
+  {name:'河水', side:1,  pts:[[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],[10,3],[11,3],[12,3],[13,3]]},
+  {name:'渭水', side:1,  pts:[[0,5],[1,5],[2,5],[3,5],[4,4],[4,3]]},
+  {name:'汉水', side:-1, pts:[[1,8],[2,8],[3,8],[4,8],[5,8],[6,8],[6,9],[7,9],[7,10]]},
+  {name:'淮水', side:-1, pts:[[7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[15,8]]},
+  {name:'江水', side:1,  pts:[[2,10],[3,10],[4,10],[5,10],[6,10],[7,10],[8,10],[9,10],[10,10],[11,10],[12,10],[13,10],[14,10],[15,10]]},
+];
+const RIVER_FOOD_BONUS = 1.15, RIVER_GOLD_BONUS = 1.10;
+const RIVER_DEF_BONUS = 1.08, CROSS_RIVER_PENALTY = 0.90;
+
+const COUNTY_WEIGHT = {'秦':1.25,'楚':1.20,'齐':1.05,'燕':1.00,'赵':1.05,'魏':0.95,'韩':1.00};
+
+const ACTIONS = {
+  recruit:['征兵','25金15粮→兵+35'], farm:['屯田','粮+45'], trade:['兴商','金+30'],
+  attack:['进攻','攻打接壤之城'], clash:['会战','50金50粮·决胜'], defend:['防守','防御大增'],
+  sabotage:['离间','20金·谍报（不限接壤）'], rest:['休整练兵','士气+15兵+10'],
+  fortify:['筑城','100金100粮·指定城+1防'], siege:['破城','40金30粮·敌城-1防'], fire:['火攻','15金·焚敌仓廪'],
+};
+const ACTION_ORDER = ['recruit','farm','trade','attack','clash','defend','sabotage','rest','fortify','siege','fire'];
+const COSTS = {recruit:[25,15],fortify:[100,100],siege:[40,30],sabotage:[20,0],fire:[15,0],clash:[50,50]};
+const TARGET_ACTIONS = new Set(['attack','sabotage','fire','siege','clash','fortify']);
+
+const ORDERS_PER_TURN = 3, EXCHANGE_RATE = 2;
+const AI_ATTACK_CAP = 3, PILE_PENALTY = 250, TARGET_NOISE = 150;
+const CLASH_MIN_TROOPS = 150, CLASH_NOISE = 0.25, CLASH_CAPTURE = 2, CLASH_LOOT = 40;
+const DUEL_CAPTURE_BONUS = 1, DUEL_CAPTURE_CUT = 0.25, DUEL_LOOT_MULT = 1.5, DUEL_TIER_SCALE = 0.85;
+const REVENGE_PTS = 120, REVENGE_POWER_RATIO = 0.6;
+const HAN_AVOID_PTS = 80;
+const HAN_RESIST_TROOPS = 10, HAN_RESIST_MORALE = 2, HAN_RESIST_FOOD = 5, HAN_RESIST_GOLD = 5;
+const HAN_REVIVE_TROOPS = 70, HAN_REVIVE_CITY = 1;
+const HAN_REVIVE_TROOP_GAIN = 50, HAN_REVIVE_FOOD = 30, HAN_REVIVE_GOLD = 20, HAN_REVIVE_MORALE = 60;
+const HAN_STRONG_TROOPS = 150, HAN_STRONG_CITIES = 4;
+const FORT_DEF_PER_LEVEL = 0.07, FORT_LOSS_PER_LEVEL = 0.05, FORT_CAPTURE_PER_LEVEL = 0.12, FORT_MAX = 5;
+const SABOTAGE_FORT_CHANCE = 0.05;
+const ATTACK_LOSS_RATE = 0.30, DEFEND_LOSS_RATE = 0.45;
+const BATTLE_TIERS = [
+  [2.0,0.7,1.2,2,40,12,'大胜'], [1.4,2.0,1.0,1,25,4,'惨胜'], [1.1,1.0,1.0,1,20,6,'小胜'],
+  [0.9,1.0,1.0,0,0,0,'平手'], [0.0,1.3,0.8,0,0,0,'惨败'],
+];
+const ERA_TURN = 30, ERA_STEP = 10, ERA_CUT_PER_STEP = 0.05, ERA_MAX_CUT = 0.50;
+const FIRE_DMG_MIN = 10, FIRE_DMG_MAX = 16, FIRE_DIMINISH = [1.0,0.5,0.25];
+const GOLD_PER_CITY = 4, FOOD_PER_CITY = 12, FARM_GAIN = 45, TRADE_GAIN = 30;
+
+/* ================================================================
+   状态
+   ================================================================ */
+const S = {
+  nations:[], me:null, turn:1, weather:WEATHERS[0], aiMult:1, aiBonus:0,
+  mode:'play', speed:2, paused:false, over:false, busy:false, duelReported:false,
+  history:{}, logFilter:'全部',
+};
+const UI = { slots:[], pending:null };
+let tiles = [], CITIES = [], HEX = 26, hoverCity = null;
+let riverEdgeSet = new Set(), riverWalks = [];
+
+/* ================================================================
+   工具 / 六边形坐标
+   ================================================================ */
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const aliveList=ns=>ns.filter(n=>n.alive);
+const nationOf=k=>S.nations.find(n=>n.key===k);
+function setMorale(n,v){ n.morale=Math.max(n.moraleFloor,Math.min(100,v)); }
+function loseTroops(n,amt){ const l=Math.min(n.troops,Math.max(0,Math.round(amt))); n.troops-=l; n.troopsLost+=l; return l; }
+function spend(n,g=0,f=0){ n.gold-=g; n.food-=f; n.goldSpent+=g; n.foodSpent+=f; }
+function tileAt(col,row){ return (col<0||col>=MAP_COLS||row<0||row>=MAP_ROWS)?null:tiles[row*MAP_COLS+col]; }
+function toAxial(col,row){ return [col-(row-(row&1))/2, row]; }
+function toOffset(q,r){ return [q+(r-(r&1))/2, r]; }
+function hexDist(c1,r1,c2,r2){
+  const [q1,a]=toAxial(c1,r1),[q2,b]=toAxial(c2,r2), dq=q1-q2, dr=a-b;
+  return (Math.abs(dq)+Math.abs(dr)+Math.abs(dq+dr))/2;
+}
+function neighborCoords(col,row){
+  const [q,r]=toAxial(col,row);
+  return [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]].map(([dq,dr])=>toOffset(q+dq,r+dr));
+}
+const DIR_EDGE = [[0,1],[5,0],[4,5],[3,4],[2,3],[1,2]];   // 0=E 1=NE 2=NW 3=W 4=SW 5=SE
+const RING_START_DIR = [0,5,4,3,2,1];                     // 环棱起点顶点 → 方向索引
+function edgePointsByDir(t,d){
+  const [i1,i2]=DIR_EDGE[d];
+  return [hexVertex(t.x,t.y,i1), hexVertex(t.x,t.y,i2)];
+}
+function dirOf(t,nb){
+  const nbs=neighborCoords(t.col,t.row);
+  for (let d=0; d<6; d++)
+    if (nbs[d][0]===nb.col && nbs[d][1]===nb.row) return d;
+  return -1;
+}
+function edgeKey(c1,r1,c2,r2){
+  const a=`${c1},${r1}`, b=`${c2},${r2}`;
+  return a<b ? a+'|'+b : b+'|'+a;
+}
+function citiesOf(key){ return CITIES.filter(c=>c.owner===key); }
+function cityCount(key){ return CITIES.reduce((s,c)=>s+(c.owner===key?1:0),0); }
+function syncCounts(){ for (const n of S.nations) n.cities = cityCount(n.key); }
+function canReach(attKey, city){
+  if (city.owner===attKey) return false;
+  for (const t of city.tiles)
+    for (const [nc,nr] of neighborCoords(t.col,t.row)){
+      const nb=tileAt(nc,nr);
+      if (nb && nb.terrain!=='water' && nb.owner===attKey) return true;
+    }
+  return false;
+}
+function isCrossRiver(attKey, city){
+  let cnt=0, any=false, all=true;
+  for (const t of city.tiles)
+    for (const [nc,nr] of neighborCoords(t.col,t.row)){
+      const nb=tileAt(nc,nr);
+      if (nb && nb.terrain!=='water' && nb.owner===attKey){
+        cnt++;
+        if (riverEdgeSet.has(edgeKey(t.col,t.row,nc,nr))) any=true; else all=false;
+      }
+    }
+  return cnt>0 && any && all;
+}
+function stagingMods(attKey, city){
+  const st = CITIES.filter(c=>c.owner===attKey && city.neighbors.includes(c.id));
+  if (!st.length) return {atk:1};
+  let atk=0;
+  for (const c of st) atk+=c.mods.atk;
+  return {atk:atk/st.length};
+}
+function canAfford(n,key,sg=0,sf=0){
+  if (key==='attack' && n.troops<1) return false;
+  if (key==='fire' && n.troops<50) return false;
+  if (key==='clash' && n.troops<CLASH_MIN_TROOPS) return false;
+  if (key==='siege' && n.siegeLock) return false;
+  const [g,f]=COSTS[key]||[0,0];
+  return (n.gold-sg)>=g && (n.food-sf)>=f;
+}
+function captureThreshold(dfnPow, dfn, turn, duel){
+  let need = dfnPow*(1+dfn.cityFort*FORT_CAPTURE_PER_LEVEL);
+  if (duel) need*=(1-DUEL_CAPTURE_CUT);
+  if (turn>=ERA_TURN){
+    const cut=Math.min(ERA_MAX_CUT, ERA_CUT_PER_STEP*(Math.floor((turn-ERA_TURN)/ERA_STEP)+1));
+    need*=(1-cut);
+  }
+  return need;
+}
+
+/* ================================================================
+   国家
+   ================================================================ */
+function makeNation(key,isPlayer){
+  const n = {
+    key,name:key,isPlayer,traitName:TRAITS[key][0],traitDesc:TRAITS[key][1],
+    foodMult:1,goldMult:1,atkBonus:0,defBonus:0,lossReduce:0,slayBonus:0,fireBonus:0,
+    moraleFloor:0,lootBonus:false, cities:0, fort:0, cityFort:1,
+    troops:120,food:60,gold:50,morale:60,
+    alive:true,orders:[],defending:false,fireHits:0,siegeLock:false,lastAttacker:null,
+    canRevive:key==='韩',conqueror:null,revived:false,resisted:false,
+    troopsLost:0,goldSpent:0,foodSpent:0,elimTurn:null,
+  };
+  if (key==='秦'){ n.atkBonus+=0.10; n.lootBonus=true; }
+  else if (key==='楚'){ n.foodMult*=1.25; }
+  else if (key==='齐'){ n.goldMult*=1.30; }
+  else if (key==='燕'){ n.defBonus+=0.25; n.moraleFloor=20; }
+  else if (key==='赵'){ n.atkBonus+=0.15; n.lossReduce=0.10; }
+  else if (key==='魏'){ n.defBonus+=0.15; }
+  else if (key==='韩'){ n.slayBonus=0.15; n.fireBonus=0.50; n.troops=80; n.food=40; n.gold=30; }
+  return n;
+}
+
+/* ================================================================
+   地图构建
+   ================================================================ */
+function onMap(col,row){
+  const rg=ROW_RANGE[row];
+  return !!rg && col>=rg[0] && col<=rg[1];
+}
+function tileTerrain(col,row){
+  const k=`${col},${row}`;
+  if (SEA_TILES.has(k)||LAKE_TILES.has(k)) return 'water';
+  if (MOUNTAIN_TILES.has(k)) return 'mountain';
+  if (row===0) return 'waste';
+  return ((col*31+row*17)%10<2) ? 'hill' : 'plain';
+}
+function buildMap(){
+  tiles=[]; CITIES=[];
+  CITY_DATA.forEach((d,i)=>CITIES.push({
+    id:i,name:d.n,key:d.k,col:d.c,row:d.r,capital:!!d.cap,owner:d.k,fort:1,tiles:[],neighbors:[],mods:null
+  }));
+  for (let row=0; row<MAP_ROWS; row++)
+    for (let col=0; col<MAP_COLS; col++)
+      tiles.push(onMap(col,row)
+        ? {col,row,terrain:tileTerrain(col,row),cityId:-1,owner:null,x:0,y:0}
+        : null);
+  assignCounties();
+}
+function assignCounties(){
+  for (const c of CITIES){
+    const t=tileAt(c.col,c.row);
+    if (t){ t.owner=c.key; t.cityId=-1; }
+  }
+  for (const t of tiles){
+    if (!t || t.terrain==='water') continue;
+    if (CITIES.some(c=>c.col===t.col&&c.row===t.row)) continue;
+    let best=CITIES[0], bs=Infinity;
+    for (const c of CITIES){
+      const d=hexDist(t.col,t.row,c.col,c.row)/(COUNTY_WEIGHT[c.key]||1);
+      if (d<bs){ bs=d; best=c; }
+    }
+    t.owner=best.key; t.cityId=-1;
+  }
+  for (const key of [...new Set(CITIES.map(c=>c.key))]){
+    const cities=CITIES.filter(c=>c.key===key);
+    const land=tiles.filter(t=>t&&t.terrain!=='water'&&t.owner===key);
+    const target=Math.max(3,Math.round(land.length/cities.length));
+    const assigned=new Map();
+    const queues={};
+    for (const c of cities){
+      c.tiles=[];
+      const seed=tileAt(c.col,c.row);
+      if (!seed) continue;
+      assigned.set(seed,c.id); c.tiles.push(seed); queues[c.id]=[seed];
+    }
+    let changed=true;
+    while (changed && assigned.size<land.length){
+      changed=false;
+      for (const c of cities){
+        if (!queues[c.id] || c.tiles.length>=target) continue;
+        while (queues[c.id].length && c.tiles.length<target){
+          const cur=queues[c.id].shift();
+          for (const [nc,nr] of neighborCoords(cur.col,cur.row)){
+            if (c.tiles.length>=target) break;
+            const nb=tileAt(nc,nr);
+            if (!nb || nb.terrain==='water' || nb.owner!==key) continue;
+            if (assigned.has(nb)) continue;
+            assigned.set(nb,c.id); c.tiles.push(nb); queues[c.id].push(nb);
+            changed=true;
+          }
+        }
+      }
+    }
+    for (const t of land){
+      if (assigned.has(t)) continue;
+      let best=cities[0], bd=Infinity;
+      for (const c of cities){
+        const d=hexDist(t.col,t.row,c.col,c.row);
+        if (d<bd){ bd=d; best=c; }
+      }
+      assigned.set(t,best.id); best.tiles.push(t);
+    }
+    for (const t of land) t.cityId=assigned.get(t);
+  }
+  for (const c of CITIES) c.fort = c.key==='魏' ? (c.capital?3:2) : 1;
+}
+
+/* ---------- 河流：沿棱行走（不进地块内部） ---------- */
+function riverPath(from,to){
+  const K=t=>t[0]+','+t[1];
+  const goal=K(to);
+  if (K(from)===goal) return [from];
+  if (!tileAt(from[0],from[1])||!tileAt(to[0],to[1])) return null;
+  const seen=new Set([K(from)+'|']);
+  let queue=[[from]];
+  let guard=0;
+  while (queue.length && guard++<3000){
+    const next=[];
+    for (const path of queue){
+      const cur=path[path.length-1];
+      const tCur=tileAt(cur[0],cur[1]);
+      const pre=path.length>1?path[path.length-2]:null;
+      const dIn=pre?dirOf(tCur,tileAt(pre[0],pre[1])):-1;
+      for (const [nc,nr] of neighborCoords(cur[0],cur[1])){
+        const nb=tileAt(nc,nr);
+        if (!nb) continue;
+        const k=`${nc},${nr}`;
+        const dOut=dirOf(tCur,nb);
+        if (dIn>=0 && dOut>=0 && (dOut-dIn+6)%6===3) continue;   // 禁止"穿心直行"
+        const st=k+'|'+K(cur);
+        if (seen.has(st)) continue;
+        seen.add(st);
+        const np=path.concat([[nc,nr]]);
+        if (k===goal) return np;
+        next.push(np);
+      }
+    }
+    queue=next;
+  }
+  return null;
+}
+
+function ringRoute(eA,eB,tB,tPrev,tNext,sidePref){
+  const cand=(s,step)=>{
+    if (eB.includes(s)) return [s];
+    const path=[s];
+    let v=s;
+    for (let i=0;i<5;i++){
+      v=(v+step+6)%6;
+      path.push(v);
+      if (eB.includes(v)) return path;
+      if (eA.includes(v)) return null;
+    }
+    return null;
+  };
+  const options=[];
+  for (const s of eA)
+    for (const step of [1,-1]){
+      const p=cand(s,step);
+      if (p) options.push(p);
+    }
+  if (!options.length) return [eA[0],eB[0]];
+  options.sort((a,b)=>a.length-b.length);
+  const best=options[0];
+  const ties=options.filter(o=>o.length===best.length);
+  if (ties.length>1){
+    const tx=tNext.x-tPrev.x, ty=tNext.y-tPrev.y;
+    const sideOf=p=>{
+      let mx=0,my=0;
+      for (const v of p){ const q=hexVertex(tB.x,tB.y,v); mx+=q[0]; my+=q[1]; }
+      mx/=p.length; my/=p.length;
+      return (tx*(my-tB.y)-ty*(mx-tB.x))*(sidePref||1);
+    };
+    ties.sort((a,b)=>sideOf(b)-sideOf(a));
+    return ties[0];
+  }
+  return best;
+}
+
+function simplifyWalk(pts){
+  const near=(p,q)=>Math.abs(p[0]-q[0])<0.05&&Math.abs(p[1]-q[1])<0.05;
+  let out=pts.slice(), changed=true;
+  while (changed){
+    changed=false;
+    const res=[];
+    for (let i=0;i<out.length;i++){
+      const A=res.length?res[res.length-1]:null;
+      const B=i+1<out.length?out[i+1]:null;
+      if (A&&near(A,out[i])){ changed=true; continue; }
+      if (A&&B&&near(A,B)){ changed=true; continue; }   // 去掉折返尖刺
+      res.push(out[i]);
+    }
+    out=res;
+  }
+  return out;
+}
+
+function chainWalk(chain, sidePref){
+  const pts=[];
+  const T=t=>tileAt(t[0],t[1]);
+  const mid=e=>[(e[0][0]+e[1][0])/2,(e[0][1]+e[1][1])/2];
+  const mark=(a,b)=>riverEdgeSet.add(edgeKey(a[0],a[1],b[0],b[1]));
+  const markRing=(B,st)=>{
+    const n=neighborCoords(B[0],B[1])[RING_START_DIR[st]];
+    riverEdgeSet.add(edgeKey(B[0],B[1],n[0],n[1]));
+  };
+  if (chain.length<2) return pts;
+  mark(chain[0],chain[1]);
+  pts.push(mid(edgePointsByDir(T(chain[0]), dirOf(T(chain[0]),T(chain[1])))));
+  for (let i=1;i<chain.length-1;i++){
+    const B=chain[i], tB=T(B);
+    const dIn=dirOf(tB,T(chain[i-1])), dOut=dirOf(tB,T(chain[i+1]));
+    if (dIn<0||dOut<0) continue;
+    mark(B,chain[i+1]);
+    const route=ringRoute(DIR_EDGE[dIn],DIR_EDGE[dOut],tB,T(chain[i-1]),T(chain[i+1]),sidePref);
+    for (let j=0;j<route.length;j++){
+      pts.push(hexVertex(tB.x,tB.y,route[j]));
+      if (j>0){
+        const v1=route[j-1], v2=route[j];
+        const st=((v1+1)%6===v2)?v1:v2;
+        markRing(B,st);
+      }
+    }
+    pts.push(mid(edgePointsByDir(tB, dOut)));
+  }
+  return simplifyWalk(pts);
+}
+
+function buildRivers(){
+  riverEdgeSet=new Set(); riverWalks=[];
+  for (const r of RIVER_PATHS){
+    const chain=[];
+    for (let i=0;i<r.pts.length-1;i++){
+      const seg=riverPath(r.pts[i], r.pts[i+1])||[r.pts[i]];
+      for (const p of seg){
+        if (chain.length&&chain[chain.length-1][0]===p[0]&&chain[chain.length-1][1]===p[1]) continue;
+        chain.push(p);
+      }
+    }
+    const walk=chainWalk(chain, r.side);
+    if (walk.length>1) riverWalks.push(walk);
+  }
+}
+
+function computeCityMods(){
+  for (const c of CITIES){
+    let atk=0,def=0,food=0,gold=0,n=0,river=false,nearWater=false;
+    for (const t of c.tiles){
+      const st=TERRAIN_STATS[t.terrain]||TERRAIN_STATS.plain;
+      atk+=st.atk; def+=st.def; food+=st.food; gold+=st.gold; n++;
+      for (const [nc,nr] of neighborCoords(t.col,t.row)){
+        if (riverEdgeSet.has(edgeKey(t.col,t.row,nc,nr))) river=true;
+        const nb=tileAt(nc,nr);
+        if (nb && nb.terrain==='water') nearWater=true;
+      }
+    }
+    nearWater = nearWater || river;
+    const m=n||1;
+    c.mods={ atk:1+atk/m, def:1+def/m, food:1+food/m, gold:1+gold/m, river, nearWater };
+    if (nearWater){ c.mods.food*=RIVER_FOOD_BONUS; c.mods.gold*=RIVER_GOLD_BONUS; }
+    const set=new Set();
+    for (const t of c.tiles) for (const [nc,nr] of neighborCoords(t.col,t.row)){
+      const nb=tileAt(nc,nr);
+      if (nb && nb.cityId>=0 && nb.cityId!==c.id) set.add(nb.cityId);
+    }
+    c.neighbors=[...set];
+  }
+}
+
+/* ================================================================
+   画布
+   ================================================================ */
+const cv=document.getElementById('map'), ctx=cv.getContext('2d');
+const dpr=window.devicePixelRatio||1;
+let cvW=900, cvH=520;
+
+function sizeCanvas(){
+  const wrap=document.getElementById('mapWrap');
+  cvW=wrap.clientWidth; cvH=Math.round(cvW*0.58);
+  cv.width=cvW*dpr; cv.height=cvH*dpr; cv.style.height=cvH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  HEX=Math.min((cvW-24)/(Math.sqrt(3)*(MAP_COLS+0.5)), (cvH-24)/(1.5*MAP_ROWS+0.5));
+  computeCenters();
+}
+function computeCenters(){
+  const w=Math.sqrt(3)*HEX, h=1.5*HEX;
+  const offX=(cvW-(MAP_COLS*w+w/2))/2, offY=(cvH-(MAP_ROWS*h+HEX/2))/2;
+  for (const t of tiles){
+    if (!t) continue;
+    t.x=t.col*w+(t.row%2?w/2:0)+offX+w/2;
+    t.y=t.row*h+offY+HEX;
+  }
+}
+window.addEventListener('resize',()=>{ sizeCanvas(); });
+
+function drawHex(x,y,fill,stroke,lw){
+  ctx.beginPath();
+  for (let i=0;i<6;i++){
+    const a=Math.PI/180*(60*i-30);
+    const px=x+HEX*Math.cos(a), py=y+HEX*Math.sin(a);
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+  }
+  ctx.closePath();
+  if (fill){ ctx.fillStyle=fill; ctx.fill(); }
+  if (stroke){ ctx.strokeStyle=stroke; ctx.lineWidth=lw||1; ctx.stroke(); }
+}
+function hexVertex(x,y,i){
+  const a=Math.PI/180*(60*i-30);
+  return [x+HEX*Math.cos(a), y+HEX*Math.sin(a)];
+}
+function drawTerrainSymbol(t){
+  ctx.fillStyle='rgba(20,18,14,0.5)';
+  const dot=(x,y,r)=>{ ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill(); };
+  const tri=(x,y,s)=>{ ctx.beginPath(); ctx.moveTo(x,y-s*0.6); ctx.lineTo(x+s*0.55,y+s*0.45); ctx.lineTo(x-s*0.55,y+s*0.45); ctx.closePath(); ctx.fill(); };
+  if (t.terrain==='plain'){ dot(t.x-7,t.y,1.8); dot(t.x,t.y,1.8); dot(t.x+7,t.y,1.8); }
+  else if (t.terrain==='waste'){ dot(t.x,t.y,2.3); }
+  else if (t.terrain==='hill'){ tri(t.x,t.y,9); }
+  else if (t.terrain==='mountain'){ tri(t.x-9,t.y+1,8); tri(t.x,t.y-3,8); tri(t.x+9,t.y+1,8); }
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function ownerComponents(){
+  const seen=new Set(), comps=[];
+  for (const t of tiles){
+    if (!t || t.terrain==='water') continue;
+    const k=`${t.col},${t.row}`;
+    if (seen.has(k)) continue;
+    const comp=[], stack=[t];
+    seen.add(k);
+    while (stack.length){
+      const cur=stack.pop(); comp.push(cur);
+      for (const [nc,nr] of neighborCoords(cur.col,cur.row)){
+        const nb=tileAt(nc,nr);
+        if (!nb || nb.terrain==='water' || nb.owner!==cur.owner) continue;
+        const k2=`${nc},${nr}`;
+        if (seen.has(k2)) continue;
+        seen.add(k2); stack.push(nb);
+      }
+    }
+    comps.push({owner:comp[0].owner, tiles:comp});
+  }
+  return comps;
+}
+
+function drawMap(){
+  ctx.clearRect(0,0,cvW,cvH);
+  // 1) 地块：水域蓝色 / 陆地国家实色
+  for (const t of tiles){
+    if (!t) continue;
+    const color = t.terrain==='water' ? '#2f5d78' : (NATION_COLORS[t.owner]||'#444');
+    drawHex(t.x,t.y,color,null,0);
+  }
+  // 2) 地形符号
+  for (const t of tiles){
+    if (!t || t.terrain==='water') continue;
+    drawTerrainSymbol(t);
+  }
+  // 3) 国界：黑色实线（依河而隔的国界由河流充当）
+  const doneBorder=new Set();
+  for (const t of tiles){
+    if (!t || t.terrain==='water') continue;
+    const nbs=neighborCoords(t.col,t.row);
+    for (let d=0; d<6; d++){
+      const [nc,nr]=nbs[d];
+      const nb=tileAt(nc,nr);
+      if (!nb || nb.terrain==='water') continue;
+      if (nb.owner===t.owner) continue;
+      const k=edgeKey(t.col,t.row,nc,nr);
+      if (riverEdgeSet.has(k) || doneBorder.has(k)) continue;
+      doneBorder.add(k);
+      const [p1,p2]=edgePointsByDir(t,d);
+      ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]);
+      ctx.strokeStyle='#0b0d10'; ctx.lineWidth=2.4; ctx.stroke();
+    }
+  }
+  // 4) 河流：黑色细衬 + 蓝色芯线，严格沿棱行走（层级高于国界）
+  ctx.lineJoin='round'; ctx.lineCap='round';
+  for (const walk of riverWalks){
+    if (walk.length<2) continue;
+    for (const [style,width] of [['#12151b',7],['#4b8fc7',5]]){
+      ctx.beginPath();
+      walk.forEach(([x,y],i)=> i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+      ctx.strokeStyle=style; ctx.lineWidth=width; ctx.stroke();
+    }
+  }
+  // 5) 郡界：黑色细虚线（同国不同郡；依河处叠于河流之上）
+  const doneCounty=new Set();
+  for (const t of tiles){
+    if (!t || t.terrain==='water') continue;
+    const nbs=neighborCoords(t.col,t.row);
+    for (let d=0; d<6; d++){
+      const [nc,nr]=nbs[d];
+      const nb=tileAt(nc,nr);
+      if (!nb || nb.terrain==='water') continue;
+      if (nb.owner!==t.owner) continue;
+      if (nb.cityId===t.cityId) continue;
+      const k=edgeKey(t.col,t.row,nc,nr);
+      if (doneCounty.has(k)) continue;
+      doneCounty.add(k);
+      const [p1,p2]=edgePointsByDir(t,d);
+      ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]);
+      ctx.setLineDash([4,4]); ctx.lineWidth=1.2;
+      ctx.strokeStyle='rgba(10,12,16,0.9)'; ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+  // 6) 城池图标 + 城名名牌（置顶）
+  for (const city of CITIES){
+    const t=tileAt(city.col,city.row);
+    if (!t) continue;
+    const w=HEX*0.72, h=HEX*0.52, iy=t.y-h/2-HEX*0.12;
+    roundRect(t.x-w/2, iy, w, h, 3);
+    ctx.fillStyle='rgba(16,19,25,0.92)'; ctx.fill();
+    ctx.strokeStyle='rgba(212,169,66,0.5)'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle=city.capital?'#f2d264':'#e8d9a8';
+    ctx.font='12px "Noto Serif SC",serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(city.capital?'★':'城', t.x, iy+h/2);
+
+    ctx.font='11px "Noto Serif SC",serif';
+    const w1=ctx.measureText(city.name).width;
+    const fTxt=city.fort>0?(' 防'+city.fort):'';
+    const w2=fTxt?ctx.measureText(fTxt).width:0;
+    const total=w1+w2, py=t.y+HEX*0.95;
+    roundRect(t.x-total/2-5, py-8, total+10, 16, 3);
+    ctx.fillStyle='rgba(15,18,23,0.92)'; ctx.fill();
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillStyle='#f2e8cf'; ctx.fillText(city.name, t.x-total/2, py);
+    if (fTxt){ ctx.fillStyle='#f2d264'; ctx.fillText(fTxt, t.x-total/2+w1, py); }
+  }
+  // 7) 国名题字：每块独立领土各书其名（含飞地）
+  for (const comp of ownerComponents()){
+    const x=comp.tiles.reduce((s,t)=>s+t.x,0)/comp.tiles.length;
+    const y=comp.tiles.reduce((s,t)=>s+t.y,0)/comp.tiles.length;
+    const size = comp.tiles.length>=8 ? 23 : comp.tiles.length>=4 ? 16 : 11;
+    ctx.font=`900 ${size}px "ZCOOL XiaoWei","Noto Serif SC",serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.lineWidth=4; ctx.strokeStyle='rgba(12,14,18,0.92)';
+    ctx.strokeText(comp.owner,x,y);
+    ctx.fillStyle='#f4ead2';
+    ctx.fillText(comp.owner,x,y);
+  }
+  // 8) 目标高亮 + 天气
+  if (UI.pending && hoverCity){
+    for (const t of hoverCity.tiles) drawHex(t.x,t.y,'rgba(255,255,255,0.15)','#f0e2b0',2.6);
+  }
+  drawWeatherFX();
+}
+
+let particles=[];
+function initParticles(){
+  particles=[];
+  const n=(S.weather&&(S.weather.name==='大雨'||S.weather.name==='大雪'))?80:34;
+  for (let i=0;i<n;i++) particles.push({x:Math.random()*cvW,y:Math.random()*cvH,s:Math.random()*2+1});
+}
+function drawWeatherFX(){
+  if (!S.weather) return;
+  const w=S.weather.name;
+  if (w==='大雨') ctx.fillStyle='rgba(60,90,140,0.13)';
+  else if (w==='大雪') ctx.fillStyle='rgba(220,230,245,0.10)';
+  else if (w==='干旱'||w==='酷暑') ctx.fillStyle='rgba(190,110,40,0.10)';
+  else if (w==='大风') ctx.fillStyle='rgba(140,150,120,0.08)';
+  else ctx.fillStyle='rgba(210,180,90,0.05)';
+  ctx.fillRect(0,0,cvW,cvH);
+  if (w==='大雨'||w==='大雪'||w==='大风'){
+    for (const p of particles){
+      if (w==='大雨'){
+        ctx.strokeStyle='rgba(160,190,230,0.5)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-3,p.y+12); ctx.stroke();
+        p.y+=9+p.s*3; p.x-=1.6;
+      } else if (w==='大雪'){
+        ctx.fillStyle='rgba(235,240,250,0.7)';
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,7); ctx.fill();
+        p.y+=1.1+p.s*0.5; p.x+=Math.sin(p.y/30);
+      } else {
+        ctx.strokeStyle='rgba(200,210,180,0.35)';
+        ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x+22,p.y-4); ctx.stroke();
+        p.x+=7+p.s*2;
+      }
+      if (p.y>cvH+10) p.y=-10;
+      if (p.x>cvW+30) p.x=-30;
+      if (p.x<-30) p.x=cvW+30;
+    }
+  }
+}
+
+/* ================================================================
+   战斗与结算
+   ================================================================ */
+function fireAttack(att,city,weather,log){
+  const dfn=nationOf(city.owner);
+  if (!dfn) return;
+  const hits=dfn.fireHits; dfn.fireHits++;
+  const dim=FIRE_DIMINISH[Math.min(hits,FIRE_DIMINISH.length-1)];
+  const base=rnd(FIRE_DMG_MIN,FIRE_DMG_MAX);
+  let dmg=Math.floor(base*weather.fire*(1+att.fireBonus)*(dfn.defending?0.6:1)*dim);
+  dmg=Math.max(0,dmg);
+  const lost=loseTroops(dfn,dmg);
+  dfn.food=Math.max(0,dfn.food-15);
+  setMorale(dfn,dfn.morale-5);
+  const tail=hits>0?'（本回合再次中火，收效甚微）':'';
+  log.push(`  【${att.name}】火攻【${city.name}】${tail}！【${dfn.name}】损兵${lost}、粮草-15、士气-5`,[att.key,dfn.key]);
+}
+
+function battle(att,city,weather,aiMult,log,turn,duel){
+  const dfn=nationOf(city.owner);
+  if (!dfn || !dfn.alive || city.owner===att.key){ log.push(`  【${att.name}】进攻【${city.name}】，但该城已易主，大军扑空`,[att.key]); return; }
+  dfn.lastAttacker=att;
+  dfn.cityFort=city.fort;
+
+  const stg=stagingMods(att.key,city);
+  let atkMult=(1+att.atkBonus)*weather.atk*stg.atk;
+  const cross=isCrossRiver(att.key,city);
+  if (cross) atkMult*=CROSS_RIVER_PENALTY;
+  let defMult=city.mods.def*weather.def*(1+city.fort*FORT_DEF_PER_LEVEL)
+    *(city.mods.river?RIVER_DEF_BONUS:1)*(1+dfn.defBonus);
+  defMult*=dfn.defending?1.8:1.3;
+
+  let attPow=att.troops*(0.8+att.morale/100)*atkMult*(Math.random()*0.2+0.9);
+  let dfnPow=dfn.troops*(0.8+dfn.morale/100)*defMult*(Math.random()*0.2+0.9);
+  if (!att.isPlayer) attPow*=aiMult;
+  if (!dfn.isPlayer) dfnPow*=aiMult;
+
+  const ratio=dfnPow>0?attPow/dfnPow:99;
+  const scale=duel?DUEL_TIER_SCALE:1;
+  let tier=BATTLE_TIERS[BATTLE_TIERS.length-1];
+  for (const t of BATTLE_TIERS){ if (ratio>t[0]*scale){ tier=t; break; } }
+  const [,attLm,dfnLm,capNum,loot,moraleGain,tierName]=tier;
+
+  const total=attPow+dfnPow;
+  const attLoss=loseTroops(att,Math.max(5,Math.floor(att.troops*ATTACK_LOSS_RATE*dfnPow/total*(1-att.lossReduce)*attLm)));
+  const dfnLoss=loseTroops(dfn,Math.max(5,Math.floor(dfn.troops*DEFEND_LOSS_RATE*attPow/total*(1+att.slayBonus)*(1-city.fort*FORT_LOSS_PER_LEVEL)*dfnLm)));
+
+  log.push(`  【${att.name}】攻打【${city.name}】（城防${city.fort}级${city.mods.river?'·沿河':''}${city.mods.nearWater?'·近水':''}${cross?'·跨河':''}）——【${tierName}】！【${att.name}】损兵${attLoss}，【${dfn.name}】损兵${dfnLoss}`,[att.key,dfn.key]);
+
+  if (tierName==='平手'){
+    setMorale(att,att.morale-3); setMorale(dfn,dfn.morale-3);
+    log.push(`    两军杀得难解难分，各自收兵，${city.name}未易主`,[att.key,dfn.key]); return;
+  }
+  if (tierName==='惨败'){
+    setMorale(att,att.morale-12); setMorale(dfn,dfn.morale+6);
+    log.push(`    【${att.name}】攻城大败，士气大跌！`,[att.key,dfn.key]); return;
+  }
+  const need=captureThreshold(dfnPow,dfn,turn,duel);
+  if (attPow<=need){
+    setMorale(att,att.morale-4); setMorale(dfn,dfn.morale+3);
+    log.push(`    【${att.name}】虽击退敌军，但【${city.name}】城防坚固，未能破城！（可用「破城」拆除其城防）`,[att.key,dfn.key]);
+    return;
+  }
+  const capture=Math.min(capNum+(duel?DUEL_CAPTURE_BONUS:0), cityCount(dfn.key));
+  captureCity(att,city,log,turn);
+  for (let i=1;i<capture;i++){
+    const rest=citiesOf(dfn.key).filter(c=>canReach(att.key,c));
+    if (!rest.length) break;
+    captureCity(att,rest[0],log,turn);
+  }
+  const lootTotal=Math.floor((loot+(att.lootBonus?15:0))*(duel?DUEL_LOOT_MULT:1));
+  att.gold+=lootTotal;
+  setMorale(att,att.morale+moraleGain+(att.lootBonus?5:0));
+  setMorale(dfn,dfn.morale-12*capture);
+  log.push(`    【${att.name}】攻下${capture}座城池！掠金${lootTotal}`,[att.key,dfn.key]);
+}
+
+function decisiveClash(att,city,weather,aiMult,log,turn){
+  const dfn=nationOf(city.owner);
+  if (!dfn || !dfn.alive || city.owner===att.key){ log.push(`  【${att.name}】向【${city.name}】邀战，但该城已易主`,[att.key]); return; }
+  spend(att,50,50);
+  dfn.lastAttacker=att;
+  const stg=stagingMods(att.key,city);
+  let atkMult=(1+att.atkBonus)*weather.atk*stg.atk;
+  if (isCrossRiver(att.key,city)) atkMult*=CROSS_RIVER_PENALTY;
+  const defMult=city.mods.def*weather.def*(1+dfn.defBonus);
+
+  let attPow=att.troops*(0.8+att.morale/100)*atkMult*(1+(Math.random()*2-1)*CLASH_NOISE);
+  let dfnPow=dfn.troops*(0.8+dfn.morale/100)*defMult*(1+(Math.random()*2-1)*CLASH_NOISE);
+  if (!att.isPlayer) attPow*=aiMult;
+  if (!dfn.isPlayer) dfnPow*=aiMult;
+
+  const total=attPow+dfnPow;
+  const attLoss=loseTroops(att,Math.max(10,Math.floor(att.troops*0.30*dfnPow/total)));
+  const dfnLoss=loseTroops(dfn,Math.max(10,Math.floor(dfn.troops*0.32*attPow/total)));
+  log.push(`  【${att.name}】向【${city.name}】发起会战！【${att.name}】损兵${attLoss}，【${dfn.name}】损兵${dfnLoss}`,[att.key,dfn.key]);
+
+  if (attPow>dfnPow){
+    const capture=Math.min(CLASH_CAPTURE,cityCount(dfn.key));
+    captureCity(att,city,log,turn);
+    for (let i=1;i<capture;i++){
+      const rest=citiesOf(dfn.key).filter(c=>canReach(att.key,c));
+      if (!rest.length) break;
+      captureCity(att,rest[0],log,turn);
+    }
+    const loot=CLASH_LOOT+(att.lootBonus?15:0);
+    att.gold+=loot;
+    setMorale(att,att.morale+10+(att.lootBonus?5:0));
+    setMorale(dfn,dfn.morale-15);
+    log.push(`    【${att.name}】会战大捷！夺${capture}城、掠金${loot}，【${dfn.name}】士气崩溃`,[att.key,dfn.key]);
+  } else {
+    setMorale(att,att.morale-12); setMorale(dfn,dfn.morale+8);
+    log.push(`    【${dfn.name}】会战获胜！【${att.name}】主力溃败，士气大跌`,[att.key,dfn.key]);
+  }
+}
+
+function captureCity(att,city,log,turn,silent){
+  const dfn=nationOf(city.owner);
+  if (!dfn || city.owner===att.key) return;
+  city.owner=att.key;
+  for (const t of city.tiles) t.owner=att.key;
+  if (city.capital){
+    city.capital=false;
+    const rest=citiesOf(dfn.key);
+    if (rest.length) rest[0].capital=true;
+  }
+  syncCounts();
+  if (!silent) log.push(`    →【${city.name}】易主，归【${att.name}】`,[att.key,dfn.key]);
+  if (cityCount(dfn.key)===0) hanDefeated(dfn,att,turn,log);
+}
+
+function hanDefeated(n,conqueror,turn,log){
+  if (n.canRevive && !n.revived && conqueror){
+    n.alive=false; n.canRevive=false; n.conqueror=conqueror; conqueror.resisted=true;
+    log.push(`    ★★【${n.name}】城池尽失！但韩民不降，转入流亡！★★`,[n.key,conqueror.key]);
+    log.push(`    ★ 灭韩的【${conqueror.name}】遭到韩人抵抗：每回合损兵${HAN_RESIST_TROOPS}±4、士气-${HAN_RESIST_MORALE}、粮草-${HAN_RESIST_FOOD}、金钱-${HAN_RESIST_GOLD}！`,[conqueror.key]);
+  } else {
+    n.alive=false; n.revived=true; n.elimTurn=turn;
+    log.push(`    ★★【${n.name}】城池尽失，当场亡国！★★`,[n.key]);
+  }
+}
+
+function checkHanUprising(nations,turn,log){
+  for (const n of nations){
+    if (n.alive || n.key!=='韩' || n.canRevive || n.revived) continue;
+    const c=n.conqueror, alive=aliveList(nations);
+    const lastStand=alive.length===1;
+    let rise=false;
+    if (c && c.alive && c.troops<HAN_REVIVE_TROOPS) rise=true;
+    if (lastStand) rise=true;
+    if (!rise) continue;
+    let target=null;
+    if (c && c.alive && citiesOf(c.key).length) target=c;
+    else if (alive.length) target=alive.reduce((a,b)=>(a.cities*100+a.troops)>(b.cities*100+b.troops)?a:b);
+    if (!target || !citiesOf(target.key).length) continue;
+
+    n.alive=true; n.revived=true; n.conqueror=null;
+    const cand=citiesOf(target.key).slice().sort((a,b)=>
+      hexDist(a.col,a.row,7,6)-hexDist(b.col,b.row,7,6));
+    captureCity(n,cand[0],log,turn,true);
+    n.troops=HAN_REVIVE_TROOP_GAIN; n.food=HAN_REVIVE_FOOD; n.gold=HAN_REVIVE_GOLD; n.morale=HAN_REVIVE_MORALE;
+    target.resisted=false;
+    if (lastStand) log.push(`    ★★★ 韩国流亡政府号令天下：末路举兵，决一死战！夺【${cand[0].name}】，兵力${n.troops} ★★★`,[n.key,target.key]);
+    else log.push(`    ★★★【韩】起兵复国！夺回【${cand[0].name}】，兵力${n.troops}、粮草${n.food}、金钱${n.gold} ★★★`,[n.key,target.key]);
+    syncCounts();
+  }
+}
+
+function resolveRound(nations,weather,aiMult,aiBonus,log,turn){
+  for (const n of aliveList(nations)){
+    n.fireHits=0;
+    n.defending=n.orders.some(o=>o[0]==='defend');
+    n.siegeLock=n.orders.some(o=>o[0]==='siege');
+  }
+  for (const n of aliveList(nations)){
+    for (const [act,tgt] of n.orders){
+      if (act==='recruit'){ spend(n,25,15); n.troops+=35; log.push(`  【${n.name}】征兵，兵力+35`,[n.key]); }
+      else if (act==='farm'){
+        const g=Math.floor(FARM_GAIN*weather.food*n.foodMult*avgMod(n.key,'food'));
+        n.food+=g; log.push(`  【${n.name}】屯田，粮草+${g}`,[n.key]);
+      }
+      else if (act==='trade'){
+        const g=Math.floor(TRADE_GAIN*weather.gold*n.goldMult*avgMod(n.key,'gold'));
+        n.gold+=g; log.push(`  【${n.name}】兴商，金钱+${g}`,[n.key]);
+      }
+      else if (act==='defend'){ setMorale(n,n.morale+5); log.push(`  【${n.name}】据城防守，士气+5`,[n.key]); }
+      else if (act==='sabotage'){
+        spend(n,20,0);
+        const dfn=tgt?nationOf(tgt.owner):null;
+        if (dfn){
+          setMorale(dfn,dfn.morale-15);
+          log.push(`  【${n.name}】离间【${tgt.name}】，【${dfn.name}】士气-15`,[n.key,dfn.key]);
+          if (tgt.fort>0 && Math.random()<SABOTAGE_FORT_CHANCE){
+            tgt.fort=Math.max(0,tgt.fort-1);
+            log.push(`    ★ 收买内应成功！【${tgt.name}】城防降至${tgt.fort}级！`,[n.key,dfn.key]);
+          }
+        }
+      }
+      else if (act==='rest'){ setMorale(n,n.morale+15); n.troops+=10; log.push(`  【${n.name}】休整练兵，士气+15、伤兵归队+10`,[n.key]); }
+      else if (act==='fortify'){
+        spend(n,100,100);
+        tgt.fort=Math.min(FORT_MAX,tgt.fort+1);
+        log.push(`  【${n.name}】重金修葺【${tgt.name}】，城防升至${tgt.fort}级`,[n.key]);
+      }
+      else if (act==='siege'){
+        spend(n,40,30);
+        const old=tgt.fort;
+        tgt.fort=Math.max(0,tgt.fort-1);
+        const dfn=nationOf(tgt.owner);
+        const lost=dfn?loseTroops(dfn,15):0;
+        if (dfn) setMorale(dfn,dfn.morale-5);
+        const about=[n.key].concat(dfn?[dfn.key]:[]);
+        if (old>0) log.push(`  【${n.name}】破城【${tgt.name}】！城防 ${old}→${tgt.fort}级，损兵${lost}、士气-5`,about);
+        else log.push(`  【${n.name}】攻打【${tgt.name}】城垣，其本无城防，仅损兵${lost}`,about);
+      }
+    }
+  }
+  for (const n of aliveList(nations).slice().sort((a,b)=>b.morale-a.morale)){
+    for (const [act,tgt] of n.orders){
+      if (act==='fire' && tgt && tgt.owner!==n.key){ spend(n,15,0); fireAttack(n,tgt,weather,log); }
+    }
+  }
+  const duel=aliveList(nations).length===2;
+  const war=[];
+  for (const n of aliveList(nations))
+    for (const [act,tgt] of n.orders)
+      if ((act==='attack'||act==='clash') && tgt && tgt.owner!==n.key) war.push([n,act,tgt]);
+  war.sort((a,b)=>b[0].morale-a[0].morale);
+  for (const [att,act,tgt] of war){
+    if (!att.alive) continue;
+    if (act==='clash') decisiveClash(att,tgt,weather,aiMult,log,turn);
+    else battle(att,tgt,weather,aiMult,log,turn,duel);
+  }
+  for (const n of aliveList(nations)){
+    if (n.resisted){
+      const lost=loseTroops(n,rnd(Math.max(1,HAN_RESIST_TROOPS-4),HAN_RESIST_TROOPS+4));
+      n.food=Math.max(0,n.food-HAN_RESIST_FOOD);
+      n.gold=Math.max(0,n.gold-HAN_RESIST_GOLD);
+      n.goldSpent+=HAN_RESIST_GOLD; n.foodSpent+=HAN_RESIST_FOOD;
+      setMorale(n,n.morale-HAN_RESIST_MORALE);
+      log.push(`  【韩人抵抗】${n.name}境内义军四起！损兵${lost}、粮草-${HAN_RESIST_FOOD}、金钱-${HAN_RESIST_GOLD}、士气-${HAN_RESIST_MORALE}`,[n.key]);
+    }
+  }
+  for (const n of aliveList(nations)){
+    n.gold+=Math.floor(cityCount(n.key)*GOLD_PER_CITY*weather.gold*n.goldMult*avgMod(n.key,'gold'))+(n.isPlayer?0:aiBonus);
+    n.food+=Math.floor(cityCount(n.key)*FOOD_PER_CITY*weather.food*n.foodMult*avgMod(n.key,'food'));
+    n.food-=Math.floor(n.troops/5);
+    if (n.food<0){
+      const lost=loseTroops(n,Math.max(5,Math.floor(n.troops/10)));
+      setMorale(n,n.morale-10); n.food=0;
+      log.push(`  【${n.name}】粮草不济！逃兵${lost}，士气大跌`,[n.key]);
+    }
+    if (n.morale>50) setMorale(n,n.morale-2);
+    else if (n.morale<50) setMorale(n,n.morale+2);
+  }
+}
+function avgMod(key,field){
+  const cs=citiesOf(key);
+  if (!cs.length) return 1;
+  return cs.reduce((s,c)=>s+c.mods[field],0)/cs.length;
+}
+
+function randomEvent(nations,log){
+  if (Math.random()>0.25) return;
+  const alive=aliveList(nations);
+  if (!alive.length) return;
+  const n=alive[rnd(0,alive.length-1)];
+  const ev=['good','good','bad','bad','war'][rnd(0,4)];
+  if (ev==='good'){ n.food+=20; log.push(`  【天时】${n.name}风调雨顺，粮草+20`,[n.key]); }
+  else if (ev==='bad'){ n.gold=Math.max(0,n.gold-15); log.push(`  【天灾】${n.name}遭灾，金钱-15`,[n.key]); }
+  else { const lost=loseTroops(n,10); log.push(`  【民变】${n.name}境内生乱，兵力-${lost}`,[n.key]); }
+}
+
+/* ================================================================
+   人机决策
+   ================================================================ */
+function aiAutoExchange(n,log){
+  if (n.gold<30 && n.food>80){
+    const swap=Math.min(Math.floor((n.food-60)/EXCHANGE_RATE),30-n.gold);
+    if (swap>0){ spend(n,0,swap*EXCHANGE_RATE); n.gold+=swap; log.push(`  【${n.name}】互市：${swap*EXCHANGE_RATE}粮 → ${swap}金`,[n.key]); }
+  } else if (n.food<40 && n.gold>80){
+    const swap=Math.min(n.gold-60,Math.ceil((45-n.food)/EXCHANGE_RATE));
+    if (swap>0){ spend(n,swap,0); n.food+=swap*EXCHANGE_RATE; log.push(`  【${n.name}】互市：${swap}金 → ${swap*EXCHANGE_RATE}粮`,[n.key]); }
+  }
+}
+
+function aiTargets(me,actionKey){
+  return CITIES.filter(c=>{
+    if (c.owner===me.key) return false;
+    const owner=nationOf(c.owner);
+    if (!owner || !owner.alive) return false;
+    if (actionKey==='sabotage') return true;
+    return canReach(me.key,c);
+  });
+}
+
+function pickWarCity(me,candidates,attackMarks){
+  const score=city=>{
+    const owner=nationOf(city.owner);
+    let s=owner.cities*30+owner.troops*0.3+city.fort*25;
+    s+=(attackMarks.get(city)||0)*PILE_PENALTY;
+    if (me.lastAttacker===owner && owner.alive && me.troops>=REVENGE_POWER_RATIO*owner.troops) s-=REVENGE_PTS;
+    if (city.owner==='韩' && owner.cities<5) s+=HAN_AVOID_PTS;
+    if (me.key==='韩'){
+      if (owner.troops<60) s-=100;
+      if (owner.morale<30) s-=80;
+      s-=(attackMarks.get(city)||0)*150;
+    }
+    if (city.mods.nearWater) s+=40;
+    s+=Math.random()*TARGET_NOISE;
+    return s;
+  };
+  return candidates.slice().sort((a,b)=>score(a)-score(b))[0];
+}
+
+function aiOrders(me,nations,weather,fireMarks,attackMarks,turn,duel){
+  const picks=[], used=new Set();
+  let sg=0, sf=0;
+  const hanCautious=me.key==='韩'&&(me.troops<HAN_STRONG_TROOPS||me.cities<HAN_STRONG_CITIES);
+
+  for (let k=0;k<ORDERS_PER_TURN;k++){
+    const W={recruit:2,farm:2,trade:2,attack:3,defend:1,sabotage:1,rest:1,fortify:1,siege:1,fire:1,clash:1};
+    if (hanCautious){ W.attack=Math.max(0,W.attack-4); W.clash=0; W.farm+=2; W.trade+=2; }
+    if (me.food<Math.floor(me.troops/5)*2) W.farm+=5;
+    if (me.gold<30) W.trade+=4;
+    if (me.morale<35) W.rest+=5; else if (me.morale<45) W.rest+=2;
+    if (me.troops<80) W.recruit+=4;
+    if (me.troops>250 && me.food>60) W.attack+=3;
+    if (me.gold>180 && me.food>180) W.fortify+=2;
+    const enemyCities=CITIES.filter(c=>c.owner!==me.key && nationOf(c.owner)&&nationOf(c.owner).alive);
+    if (enemyCities.some(c=>c.fort>=2)) W.siege+=2;
+    if (me.troops>220 && enemyCities.some(c=>c.fort>=3)) W.siege+=2;
+    if (duel) W.clash+=3;
+    if (enemyCities.some(c=>c.fort>=3)) W.clash+=2;
+    if (me.troops>300) W.clash+=1;
+    if (turn>=ERA_TURN) W.attack+=Math.min(4,Math.floor((turn-ERA_TURN)/ERA_STEP)+1);
+    if (weather.food>1.0) W.farm+=2;
+    if (weather.atk<0.9) W.attack-=2;
+    if (weather.fire>=1.4) W.fire+=2; else if (weather.fire<=0.3) W.fire-=3;
+    if (picks.length && picks[picks.length-1][0]==='attack'){ W.defend+=3; W.rest+=2; }
+    if (picks.length && picks[picks.length-1][0]==='siege') W.attack+=3;
+
+    const warTargets=aiTargets(me,'attack').filter(c=>(attackMarks.get(c)||0)<AI_ATTACK_CAP);
+    const valid=ACTION_ORDER.filter(key=>{
+      if (used.has(key) || !canAfford(me,key,sg,sf)) return false;
+      if (key==='attack'||key==='clash') return warTargets.length>0;
+      if (key==='fortify') return citiesOf(me.key).some(c=>c.fort<FORT_MAX);
+      if (key==='siege'||key==='fire'||key==='sabotage') return aiTargets(me,key).length>0;
+      return true;
+    });
+    if (!valid.length) break;
+
+    let bestKey=valid[0], bestScore=-1e9;
+    for (const key of valid){ const sc=W[key]+Math.random()*2; if (sc>bestScore){ bestScore=sc; bestKey=key; } }
+    let target=null;
+    if (bestKey==='attack'||bestKey==='clash') target=pickWarCity(me,warTargets,attackMarks);
+    else if (bestKey==='sabotage'||bestKey==='fire'||bestKey==='siege'){
+      const cands=aiTargets(me,bestKey);
+      target=cands.slice().sort((a,b)=>{
+        const oa=nationOf(a.owner),ob=nationOf(b.owner);
+        return (ob.fort*100+ob.morale)-(oa.fort*100+oa.morale);
+      })[0];
+    }
+    else if (bestKey==='fortify') target=citiesOf(me.key).filter(c=>c.fort<FORT_MAX).sort((a,b)=>a.fort-b.fort)[0];
+
+    picks.push([bestKey,target]); used.add(bestKey);
+    if (bestKey==='fire'&&target) fireMarks.set(target,(fireMarks.get(target)||0)+1);
+    if ((bestKey==='attack'||bestKey==='clash')&&target) attackMarks.set(target,(attackMarks.get(target)||0)+1);
+    const [g,f]=COSTS[bestKey]||[0,0]; sg+=g; sf+=f;
+  }
+  return picks;
+}
+
+/* ================================================================
+   界面渲染
+   ================================================================ */
+function parseAbout(text){
+  const set=new Set();
+  for (const m of text.matchAll(/【(.)】/g)) set.add(m[1]);
+  return [...set];
+}
+function addLog(text,cls){
+  const div=document.getElementById('log');
+  const p=document.createElement('p');
+  p.className=cls||'';
+  p.dataset.about=parseAbout(text).join(',');
+  p.innerHTML=text.replace(/★/g,'<b class="star">★</b>').replace(/【([^】]*)】/g,'<span class="tag">【$1】</span>');
+  div.appendChild(p);
+  applyFilter();
+  div.scrollTop=div.scrollHeight;
+}
+function showLogs(lines,done){
+  if (S.speed===3){ lines.forEach(l=>addLog(l)); done(); return; }
+  let i=0;
+  const tick=()=>{ if (i<lines.length){ addLog(lines[i++]); setTimeout(tick,110); } else done(); };
+  tick();
+}
+function applyFilter(){
+  const f=S.logFilter;
+  document.querySelectorAll('#log p').forEach(p=>{
+    p.style.display=(f==='全部'||p.dataset.about.split(',').includes(f))?'':'none';
+  });
+}
+function renderFilter(){
+  const box=document.getElementById('logFilter');
+  box.innerHTML='';
+  const keys=['全部'].concat(S.nations.map(n=>n.key));
+  for (const k of keys){
+    const b=document.createElement('div');
+    b.className='fchip'+(S.logFilter===k?' sel':'');
+    b.textContent=k;
+    b.addEventListener('click',()=>{ S.logFilter=k; renderFilter(); applyFilter(); });
+    box.appendChild(b);
+  }
+}
+function renderLegend(){
+  const box=document.getElementById('legend');
+  const keys=S.nations.length?S.nations.map(n=>n.key):NATION_KEYS;
+  let html='';
+  for (const k of keys)
+    html+=`<div class="lg"><span class="sw" style="background:${NATION_COLORS[k]}"></span>【${k}】</div>`;
+  html+='<div class="lg" style="margin-left:6px; color:#d4a942">地形：</div>';
+  html+='<div class="lg">平原(···)</div><div class="lg">丘陵(△)</div><div class="lg">山地(△△△)</div><div class="lg">荒原(·)</div>';
+  html+='<div class="lg"><span class="sw" style="background:#2f5d78"></span>水域</div>';
+  html+='<div class="lg"><span class="sw" style="background:#4b8fc7"></span>江河</div>';
+  html+='<div class="lg" style="margin-left:6px;">图例：黑实线=国界　黑虚线=郡界　★=都城　「城」=城池</div>';
+  box.innerHTML=html;
+}
+
+function renderAll(){
+  renderLegend();
+  document.getElementById('turnNum').textContent=S.turn;
+  document.getElementById('weatherName').textContent=S.weather.name;
+  document.getElementById('weatherDesc').textContent=S.weather.desc;
+  renderNationCards(); renderPlayerPanel(); renderFilter();
+}
+
+function renderNationCards(){
+  const wrap=document.getElementById('nationCards');
+  wrap.innerHTML='';
+  for (const n of S.nations){
+    const div=document.createElement('div');
+    div.className='ncard'+(n.alive?'':' dead');
+    const cs=citiesOf(n.key);
+    const water=cs.filter(c=>c.mods.nearWater).length;
+    div.innerHTML=`
+      <div class="bar" style="background:${NATION_COLORS[n.key]}"></div>
+      <div class="nm">【${n.name}】${n.isPlayer?'<span class="flag"> · 你</span>':''}
+        <small>${n.traitName} · 城${cs.length}${water?` · 近水城${water}`:''}${n.resisted?' · <span class="flag">⚡韩人抵抗</span>':''}</small></div>
+      <div class="nums">兵 <b>${n.troops}</b> 粮 <b>${n.food}</b> 金 <b>${n.gold}</b><br>气 <b>${n.morale}</b></div>`;
+    div.addEventListener('click',()=>{
+      if (UI.pending){
+        const c=citiesOf(n.key)[0];
+        if (c) pickTarget(c);
+      }
+    });
+    wrap.appendChild(div);
+  }
+}
+
+function validTargets(actionKey){
+  const me=S.me;
+  return CITIES.filter(c=>{
+    if (actionKey==='fortify') return c.owner===me.key && c.fort<FORT_MAX;
+    if (c.owner===me.key) return false;
+    const owner=nationOf(c.owner);
+    if (!owner||!owner.alive) return false;
+    if (actionKey==='sabotage') return true;
+    return canReach(me.key,c);
+  });
+}
+
+function renderPlayerPanel(){
+  const isWatch=S.mode==='watch';
+  document.getElementById('playerPanel').style.display=isWatch?'none':'block';
+  document.getElementById('watchPanel').style.display=isWatch?'block':'none';
+  if (isWatch){
+    const alive=aliveList(S.nations);
+    document.getElementById('watchInfo').innerHTML=
+      `第 <b>${S.turn}</b> 回合 · 天气 <b>${S.weather.name}</b><br>`+
+      alive.map(n=>`【${n.name}】${n.cities}城 ${n.troops}兵`).join('<br>');
+    return;
+  }
+  const me=S.me; if (!me) return;
+  document.getElementById('ppTitle').textContent=`你的国家 · ${me.name}（${me.traitName}）`;
+  document.getElementById('ppRes').innerHTML=`
+    <div>兵力<span class="v">${me.troops}</span></div>
+    <div>粮草<span class="v">${me.food}</span></div>
+    <div>金钱<span class="v">${me.gold}</span></div>
+    <div>士气<span class="v">${me.morale}</span></div>
+    <div>城池<span class="v">${me.cities}</span></div>
+    <div>近水城<span class="v">${citiesOf(me.key).filter(c=>c.mods.nearWater).length}</span></div>
+    <div>地利粮<span class="v" style="font-size:12px">${Math.round((avgMod(me.key,'food')-1)*100)}%</span></div>
+    <div>状态<span class="v" style="font-size:12px">${me.alive?'征战':'流亡'}</span></div>`;
+  document.getElementById('ppCities').innerHTML=
+    '城池：'+citiesOf(me.key).map(c=>`${c.name}(${c.fort})`).join('　');
+
+  const slots=document.getElementById('ppSlots');
+  slots.innerHTML='';
+  for (let i=0;i<ORDERS_PER_TURN;i++){
+    const div=document.createElement('div');
+    const o=UI.slots[i];
+    if (o){
+      div.className='slot';
+      div.innerHTML=`<span>${i+1}. ${ACTIONS[o[0]][0]}${o[1]?' →'+o[1].name:''}</span><button data-rm="${i}">✕</button>`;
+    } else { div.className='slot empty'; div.textContent=`${i+1}. 空`; }
+    slots.appendChild(div);
+  }
+  slots.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click',e=>{
+    UI.slots.splice(+e.target.dataset.rm,1); renderPlayerPanel();
+  }));
+
+  const acts=document.getElementById('ppActions');
+  acts.innerHTML='';
+  for (const key of ACTION_ORDER){
+    const btn=document.createElement('button');
+    btn.className='obtn';
+    if (UI.slots.some(o=>o[0]===key)) btn.classList.add('used');
+    if (UI.pending===key) btn.classList.add('targeting');
+    btn.innerHTML=`${ACTIONS[key][0]}<small>${ACTIONS[key][1]}</small>`;
+    btn.addEventListener('click',()=>tryOrder(key));
+    acts.appendChild(btn);
+  }
+  document.getElementById('ppHint').textContent=UI.pending
+    ? `已选【${ACTIONS[UI.pending][0]}】→请点击地图上的目标城池`:'';
+  document.getElementById('submitBtn').disabled=S.busy||UI.slots.length<ORDERS_PER_TURN;
+}
+
+function tryOrder(key){
+  const me=S.me;
+  if (S.busy||!me||!me.alive) return;
+  if (UI.slots.length>=ORDERS_PER_TURN) return;
+  if (UI.slots.some(o=>o[0]===key)){ addLog('    同一军令每回合只能下一次。','sys'); return; }
+  if (key==='siege'&&me.siegeLock){ addLog('    「破城」不可连续使用，本回合冷却中。','sys'); return; }
+  if (key==='clash'&&me.troops<CLASH_MIN_TROOPS){ addLog(`    「会战」需兵力≥${CLASH_MIN_TROOPS}。`,'sys'); return; }
+  const sg=UI.slots.reduce((s,o)=>s+(COSTS[o[0]]?COSTS[o[0]][0]:0),0);
+  const sf=UI.slots.reduce((s,o)=>s+(COSTS[o[0]]?COSTS[o[0]][1]:0),0);
+  if (!canAfford(me,key,sg,sf)){ addLog('    资源不足，可先互市或另下军令。','sys'); return; }
+  if (TARGET_ACTIONS.has(key)){
+    const v=validTargets(key);
+    if (!v.length){ addLog('    当前没有可选目标（攻伐须与敌境接壤）。','sys'); return; }
+    UI.pending=UI.pending===key?null:key;
+  } else {
+    UI.slots.push([key,null]); UI.pending=null;
+  }
+  renderPlayerPanel();
+}
+
+function pickTarget(city){
+  if (!UI.pending) return;
+  const key=UI.pending;
+  if (!validTargets(key).includes(city)){
+    addLog(`    【${city.name}】不是有效目标（攻伐须与敌境接壤）。`,'sys');
+    return;
+  }
+  UI.slots.push([key,city]); UI.pending=null;
+  renderPlayerPanel();
+}
+
+function autoFillOrders(){
+  const me=S.me; if (!me||!me.alive) return;
+  const fireMarks=new Map(), attackMarks=new Map();
+  for (const [k,t] of UI.slots){
+    if (k==='fire'&&t) fireMarks.set(t,(fireMarks.get(t)||0)+1);
+    if ((k==='attack'||k==='clash')&&t) attackMarks.set(t,(attackMarks.get(t)||0)+1);
+  }
+  const picks=aiOrders(me,S.nations,S.weather,fireMarks,attackMarks,S.turn,aliveList(S.nations).length===2);
+  for (const [k,t] of picks){
+    if (UI.slots.length>=ORDERS_PER_TURN) break;
+    if (UI.slots.some(o=>o[0]===k)) continue;
+    UI.slots.push([k,t]);
+  }
+  renderPlayerPanel();
+}
+
+/* ================================================================
+   回合推进
+   ================================================================ */
+function nextRound(){
+  if (S.over) return;
+  S.weather=WEATHERS[rnd(0,WEATHERS.length-1)];
+  initParticles(); renderAll();
+  const meCanAct=S.me&&S.me.alive;
+  const meExile=S.me&&!S.me.alive&&S.me.key==='韩'&&!S.me.revived&&S.me.conqueror;
+  if (S.mode==='watch'||!meCanAct){
+    if (meExile) addLog('（你的国家流亡中，静候复国时机……）','sys');
+    if (S.mode==='watch'&&S.paused) return;
+    runRound();
+  } else {
+    UI.slots=[]; UI.pending=null; S.busy=false; renderPlayerPanel();
+  }
+}
+
+function runRound(){
+  S.busy=true;
+  const log=[];
+  const duel=aliveList(S.nations).length===2;
+  const fireMarks=new Map(), attackMarks=new Map();
+
+  if (S.me&&S.me.alive){
+    S.me.orders=UI.slots.map(([k,t])=>[k,t]);
+    for (const [k,t] of S.me.orders) if (k==='fire'&&t) fireMarks.set(t,(fireMarks.get(t)||0)+1);
+  }
+  for (const n of S.nations){
+    if (n.alive&&n!==S.me){
+      aiAutoExchange(n,{push:(t,a)=>log.push([t,a])});
+      n.orders=aiOrders(n,S.nations,S.weather,fireMarks,attackMarks,S.turn,duel);
+    }
+    if (n.alive&&n.orders.length){
+      log.push([`  【${n.name}】号令：`+n.orders.map(([k,t])=>ACTIONS[k][0]+(t?'→'+t.name:'')).join('，'), [n.key]]);
+    }
+  }
+  const wrapLog={ push:(t,a)=>log.push([t,a||parseAbout(t)]) };
+  resolveRound(S.nations,S.weather,S.aiMult,S.aiBonus,wrapLog,S.turn);
+  randomEvent(S.nations,wrapLog);
+  checkHanUprising(S.nations,S.turn,wrapLog);
+
+  for (const [text] of log) for (const k of parseAbout(text)) pushHistory(k,text);
+  const texts=log.map(x=>x[0]);
+  showLogs(texts,()=>{ S.busy=false; renderAll(); afterRound(); });
+}
+
+function pushHistory(key,text){
+  if (!S.history[key]) S.history[key]=[];
+  S.history[key].push({turn:S.turn,text});
+}
+
+function afterRound(){
+  const alive=aliveList(S.nations);
+  if (alive.length===2&&!S.duelReported){
+    S.duelReported=true;
+    addLog('★★ 天下仅剩两国！终局决战——胜仗多夺1城，夺城门槛-25%、掠夺+50%！★★','sys');
+  }
+  if (S.mode==='play'&&S.me){
+    const meExile=!S.me.alive&&S.me.key==='韩'&&!S.me.revived&&S.me.conqueror;
+    if (!S.me.alive&&!meExile){ endGame('你的国家灭亡了','天下归于他人……'); return; }
+    if (S.me.alive&&alive.every(n=>n===S.me)){ endGame('你一统天下！',`${S.me.name}王万岁！`); return; }
+  } else {
+    if (alive.length<=1){
+      endGame(alive.length===1?`【${alive[0].name}】一统天下！`:'天下同归于尽',
+              alive.length===1?`历经 ${S.turn} 回合 · ${alive[0].traitName}`:'苍生何辜……');
+      return;
+    }
+  }
+  S.turn++;
+  if (S.mode==='watch'){
+    const delay=S.speed===1?1100:S.speed===2?380:30;
+    setTimeout(()=>{ if (!S.paused&&!S.over) nextRound(); },delay);
+  } else nextRound();
+}
+
+function endGame(title,sub){
+  S.over=true;
+  document.getElementById('endTitle').textContent=title;
+  document.getElementById('endSub').textContent=sub;
+  let html='<table class="stats"><tr><th>国家</th><th>城池</th><th>阵亡士兵</th><th>耗费金钱</th><th>耗费粮草</th><th>淘汰</th></tr>';
+  for (const n of S.nations){
+    const fate=n.elimTurn?`第${n.elimTurn}回合`:(!n.alive?'流亡':'幸存');
+    html+=`<tr><td>【${n.name}】</td><td>${n.cities}</td><td>${n.troopsLost}</td><td>${n.goldSpent}</td><td>${n.foodSpent}</td><td>${fate}</td></tr>`;
+  }
+  html+='</table>';
+  const totalLost=S.nations.reduce((s,n)=>s+n.troopsLost,0);
+  const topLoss=S.nations.slice().sort((a,b)=>b.troopsLost-a.troopsLost)[0];
+  const eliminated=S.nations.filter(n=>n.elimTurn).sort((a,b)=>a.elimTurn-b.elimTurn);
+  const topGold=S.nations.slice().sort((a,b)=>b.goldSpent-a.goldSpent)[0];
+  const topFood=S.nations.slice().sort((a,b)=>b.foodSpent-a.foodSpent)[0];
+  html+=`<div class="kv">本局阵亡士兵总计：<b>${totalLost}</b><br>
+    ★ 损失士兵最多：<b>【${topLoss.name}】</b> 阵亡 ${topLoss.troopsLost}<br>
+    ★ 最先淘汰：<b>${eliminated.length?`【${eliminated[0].name}】第 ${eliminated[0].elimTurn} 回合`:'无（诸国尚存或流亡）'}</b><br>
+    ★ 耗费金钱最多：<b>【${topGold.name}】</b> 花金 ${topGold.goldSpent}<br>
+    ★ 耗费粮草最多：<b>【${topFood.name}】</b> 花粮 ${topFood.foodSpent}</div>`;
+  document.getElementById('endStats').innerHTML=html;
+  document.getElementById('endMask').classList.remove('hide');
+}
+
+/* ================================================================
+   开局
+   ================================================================ */
+const cfg={mode:'play',diff:2,nation:'秦',count:6,wCount:7};
+function bindChipGroup(id,attr,cb){
+  const box=document.getElementById(id);
+  box.addEventListener('click',e=>{
+    const btn=e.target.closest('.chip'); if (!btn) return;
+    box.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel'));
+    btn.classList.add('sel'); cb(btn.dataset[attr]);
+  });
+}
+(function(){
+  const box=document.getElementById('nationChips');
+  for (const k of NATION_KEYS){
+    const b=document.createElement('button');
+    b.className='chip nation'+(k==='秦'?' sel':'');
+    b.dataset.k=k;
+    const cs=CITY_DATA.filter(c=>c.k===k).map(c=>c.n).join('·');
+    b.innerHTML=`【${k}】<small>${TRAITS[k][0]}｜${cs}</small>`;
+    box.appendChild(b);
+  }
+  box.addEventListener('click',e=>{
+    const btn=e.target.closest('.chip'); if (!btn) return;
+    box.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel'));
+    btn.classList.add('sel'); cfg.nation=btn.dataset.k;
+  });
+})();
+bindChipGroup('modeChips','mode',v=>{ cfg.mode=v;
+  document.getElementById('playOpts').style.display=v==='play'?'block':'none';
+  document.getElementById('watchOpts').style.display=v==='watch'?'block':'none'; });
+bindChipGroup('diffChips','diff',v=>cfg.diff=+v);
+bindChipGroup('countChips','c',v=>cfg.count=+v);
+bindChipGroup('wCountChips','c',v=>cfg.wCount=+v);
+bindChipGroup('speedBtns','sp',v=>S.speed=+v);
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+document.getElementById('againBtn').addEventListener('click',()=>{
+  document.getElementById('endMask').classList.add('hide');
+  document.getElementById('startMask').classList.remove('hide');
+  document.getElementById('log').innerHTML='';
+});
+
+function startGame(){
+  S.mode=cfg.mode; S.turn=1; S.over=false; S.busy=false; S.paused=false;
+  S.duelReported=false; S.history={}; S.logFilter='全部';
+  document.getElementById('log').innerHTML='';
+  document.getElementById('startMask').classList.add('hide');
+  document.getElementById('pauseBtn').textContent='暂停';
+
+  buildMap();
+  sizeCanvas();
+  buildRivers();
+  computeCityMods();
+
+  const keysInPlay=[];
+  if (S.mode==='play'){
+    const d=DIFFICULTIES[cfg.diff];
+    S.aiMult=d.aiMult; S.aiBonus=d.aiBonus;
+    const others=NATION_KEYS.filter(k=>k!==cfg.nation).sort(()=>Math.random()-0.5).slice(0,cfg.count);
+    keysInPlay.push(cfg.nation,...others);
+    S.nations=keysInPlay.map(k=>makeNation(k,k===cfg.nation));
+    S.me=S.nations[0];
+    addLog(`本局登场：${keysInPlay.map(k=>'【'+k+'】').join('、')}｜难度【${d.name}】`,'sys');
+    if (cfg.nation==='韩') addLog('★ 你是韩国：开局弱小，宜种田捡漏。首次亡国不灭——灭你的国家将遭「韩人抵抗」，其兵力低于70时你将起兵复国！★','sys');
+  } else {
+    S.aiMult=1; S.aiBonus=0;
+    const keys=NATION_KEYS.slice().sort(()=>Math.random()-0.5).slice(0,cfg.wCount);
+    keysInPlay.push(...keys);
+    S.nations=keys.map(k=>makeNation(k,false));
+    S.me=null;
+    addLog(`观战开局：${keys.map(k=>'【'+k+'】').join('、')}`,'sys');
+  }
+  const present=new Set(keysInPlay);
+  for (const c of CITIES){
+    if (!present.has(c.owner)){
+      let best=keysInPlay[0], bd=1e9;
+      for (const k of keysInPlay){
+        const home=CITY_DATA.find(d=>d.k===k);
+        const d=hexDist(c.col,c.row,home.c,home.r);
+        if (d<bd){ bd=d; best=k; }
+      }
+      c.owner=best;
+      for (const t of c.tiles) t.owner=best;
+    }
+  }
+  syncCounts();
+  initParticles(); renderAll(); nextRound();
+}
+
+/* 观战控制 */
+document.getElementById('pauseBtn').addEventListener('click',()=>{
+  S.paused=!S.paused;
+  document.getElementById('pauseBtn').textContent=S.paused?'继续':'暂停';
+  if (!S.paused&&S.mode==='watch'&&!S.busy&&!S.over) nextRound();
+});
+document.getElementById('stepBtn').addEventListener('click',()=>{
+  if (S.mode==='watch'&&!S.busy&&!S.over){ S.paused=true; document.getElementById('pauseBtn').textContent='继续'; nextRound(); }
+});
+
+/* 互市 */
+const exMask=document.getElementById('exMask');
+document.getElementById('exchangeBtn').addEventListener('click',()=>{
+  const me=S.me; if (!me) return;
+  document.getElementById('exInfo').innerHTML=`当前：<b>金钱 ${me.gold}</b> · <b>粮草 ${me.food}</b>　（不占军令次数）`;
+  exMask.classList.remove('hide');
+});
+exMask.addEventListener('click',e=>{
+  const btn=e.target.closest('[data-ex]'), me=S.me;
+  if (btn&&me){
+    const kind=btn.dataset.ex;
+    if (kind.startsWith('fg')){
+      let amt=kind==='fg10'?10:kind==='fg50'?50:Math.floor(me.food/EXCHANGE_RATE);
+      amt=Math.min(amt,Math.floor(me.food/EXCHANGE_RATE));
+      if (amt>0){ spend(me,0,amt*EXCHANGE_RATE); me.gold+=amt; }
+    } else {
+      let amt=kind==='gf10'?10:kind==='gf50'?50:me.gold;
+      amt=Math.min(amt,me.gold);
+      if (amt>0){ spend(me,amt,0); me.food+=amt*EXCHANGE_RATE; }
+    }
+    document.getElementById('exInfo').innerHTML=`当前：<b>金钱 ${me.gold}</b> · <b>粮草 ${me.food}</b>　（不占军令次数）`;
+    renderAll();
+  }
+});
+document.getElementById('exDone').addEventListener('click',()=>exMask.classList.add('hide'));
+
+/* 国史 */
+function openHistory(){
+  const key=S.me?S.me.key:null;
+  const box=document.getElementById('histBody');
+  document.getElementById('histSub').textContent=key
+    ? `【${key}】的兴亡纪事`
+    : '诸国纪事（选一国查看）';
+  let html='';
+  if (key){
+    const list=(S.history[key])||[];
+    if (!list.length) html='<div class="kv">暂无记录</div>';
+    else {
+      let cur=-1;
+      list.forEach((e,idx)=>{
+        if (e.turn!==cur){
+          if (cur!==-1) html+='</div>';
+          cur=e.turn;
+          html+=`<div class="histTurn"><b>第 ${e.turn} 回合</b><br>`;
+        }
+        html+=e.text.trim()+'<br>';
+        if (idx===list.length-1) html+='</div>';
+      });
+    }
+  } else {
+    for (const n of S.nations){
+      const h=S.history[n.key]||[];
+      html+=`<div class="histTurn"><b>【${n.name}】</b> 共 ${h.length} 条记录<br>${
+        h.slice(-6).map(e=>`第${e.turn}回合 ${e.text.trim()}`).join('<br>')||'暂无'}</div>`;
+    }
+  }
+  box.innerHTML=html;
+  document.getElementById('histMask').classList.remove('hide');
+}
+['historyBtn','historyBtn2','historyBtn3'].forEach(id=>{
+  const el=document.getElementById(id);
+  if (el) el.addEventListener('click',openHistory);
+});
+document.getElementById('histDone').addEventListener('click',()=>
+  document.getElementById('histMask').classList.add('hide'));
+
+/* 提交 */
+document.getElementById('autoFillBtn').addEventListener('click',autoFillOrders);
+document.getElementById('submitBtn').addEventListener('click',()=>{
+  if (UI.slots.length<ORDERS_PER_TURN||S.busy) return;
+  UI.pending=null; runRound();
+});
+
+/* 地图交互 */
+function tileFromMouse(e){
+  const rect=cv.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  let best=null, bd=1e9;
+  for (const t of tiles){
+    if (!t) continue;
+    const d=Math.hypot(t.x-mx,t.y-my);
+    if (d<bd){ bd=d; best=t; }
+  }
+  return (best&&bd<HEX*1.15)?best:null;
+}
+cv.addEventListener('mousemove',e=>{
+  const t=tileFromMouse(e);
+  const tip=document.getElementById('tooltip');
+  if (!t){ tip.style.display='none'; hoverCity=null; return; }
+  const city=t.cityId>=0?CITIES[t.cityId]:null;
+  hoverCity=city;
+  const TT=TERRAIN_STATS[t.terrain]||TERRAIN_STATS.plain;
+  const owner=t.owner?nationOf(t.owner):null;
+  tip.innerHTML=`<b style="color:#d4a942">${city?city.name:'（郡地）'}</b>${city&&city.capital?' ★都城':''}<br>
+    归属 <b style="color:${NATION_COLORS[t.owner]}">${t.owner||'水域'}</b>${owner&&owner.isPlayer?'（你）':''}<br>
+    地形 ${TT.name}${city&&city.mods.river?' · <span style="color:#7fb8e6">沿河</span>':''}${city&&city.mods.nearWater?' · <span style="color:#7fb8e6">近水</span>':''}<br>
+    ${city?`城防 ${city.fort} 级　兵力 ${owner?owner.troops:0}　郡地 ${city.tiles.length}格`:''}`;
+  tip.style.display='block';
+  const wrap=document.getElementById('mapWrap').getBoundingClientRect();
+  let left=e.clientX-wrap.left+14, top=e.clientY-wrap.top+14;
+  if (left>wrap.width-240) left=e.clientX-wrap.left-240;
+  tip.style.left=left+'px'; tip.style.top=top+'px';
+});
+cv.addEventListener('mouseleave',()=>{ document.getElementById('tooltip').style.display='none'; hoverCity=null; });
+cv.addEventListener('click',e=>{
+  const t=tileFromMouse(e);
+  if (!t || t.cityId<0) return;
+  pickTarget(CITIES[t.cityId]);
+});
+
+/* 启动：等字体加载完成再开画 */
+function boot(){
+  sizeCanvas();
+  initParticles();
+  renderLegend();
+  (function loop(){ drawMap(); requestAnimationFrame(loop); })();
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(boot);
+else boot();
+</script>
+</body>
+</html>
